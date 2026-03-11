@@ -1,20 +1,26 @@
 import Fastify from "fastify";
-import { timeStamp } from "node:console";
-import { request } from "node:http";
+import { registerPlugins } from "./plugins";
+import { env } from "./config/env";
 
+// fastify instance
 const app = Fastify({
   logger: true,
 });
 
-// routes
+// healthcheck route
 app.get("/health", async (request, reply) => {
   return { status: "ok", app: "voxicare", timeStamp: new Date().toISOString() };
 });
 
+// main function to start server
 const start = async () => {
   try {
-    await app.listen({ port: 3001, host: "0.0.0.0" });
-    console.log("Voxicare server running on http://localhost:3001");
+    //register all plugins
+    await registerPlugins(app);
+
+    // start listening on configured port
+    await app.listen({ port: Number(env.PORT), host: "0.0.0.0" });
+    console.log(`Voxicare server running on http://localhost:${env.PORT}`);
   } catch (err) {
     app.log.error(err);
     process.exit(1);
