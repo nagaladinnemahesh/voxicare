@@ -3,6 +3,7 @@ import { registerPlugins } from "./plugins";
 import { env } from "./config/env";
 import { authRoutes } from "./modules/auth/auth.routes";
 import { doctorsRoutes } from "./modules/doctors/doctors.routes";
+import { appointmentsRoutes } from "./modules/appointments/appointments.routes";
 
 // fastify instance
 const app = Fastify({
@@ -25,6 +26,9 @@ const start = async () => {
 
     //doctor routes - browsing doctors and specializations
     app.register(doctorsRoutes, { prefix: "/api/doctors" });
+
+    // Appointments routes — protected, requires JWT
+    app.register(appointmentsRoutes, { prefix: "/api/appointments" });
 
     // start listening on configured port
     await app.listen({ port: Number(env.PORT), host: "0.0.0.0" });
