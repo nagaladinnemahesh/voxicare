@@ -1,0 +1,177 @@
+generator client {
+  provider = "prisma-client-js"
+  output = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ========================
+// ENUMS
+// ========================
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum BloodGroup {
+  A_POS
+  A_NEG
+  B_POS
+  B_NEG
+  AB_POS
+  AB_NEG
+  O_POS
+  O_NEG
+}
+
+enum DoctorStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  RESCHEDULED
+  NO_SHOW
+}
+
+enum DayOfWeek {
+  MON
+  TUE
+  WED
+  THU
+  FRI
+  SAT
+  SUN
+}
+
+// ========================
+// MODELS
+// ========================
+
+model User {
+  id           String      @id @default(uuid())
+  name         String
+  email        String      @unique
+  phone        String      @unique
+  password     String
+  dateOfBirth  DateTime
+  gender       Gender
+  bloodGroup   BloodGroup?
+  height       Float?
+  weight       Float?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  appointments Appointment[]
+
+  @@map("users")
+}
+
+model Specialization {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+
+  doctors DoctorSpecialization[]
+
+  @@map("specializations")
+}
+
+model Doctor {
+  id               String       @id @default(uuid())
+  name             String
+  email            String       @unique
+  phone            String       @unique
+  password         String
+  status           DoctorStatus @default(PENDING)
+  city             String
+  bio              String?
+  experienceYears  Int
+  consultationFee  Float
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  specializations DoctorSpecialization[]
+  availability    DoctorAvailability[]
+  leaves          DoctorLeave[]
+  appointments    Appointment[]
+
+  @@map("doctors")
+}
+
+model DoctorSpecialization {
+  id               String         @id @default(uuid())
+  doctorId         String
+  specializationId String
+  createdAt        DateTime       @default(now())
+
+  doctor           Doctor         @relation(fields: [doctorId], references: [id])
+  specialization   Specialization @relation(fields: [specializationId], references: [id])
+
+  @@unique([doctorId, specializationId])
+  @@map("doctor_specializations")
+}
+
+model DoctorAvailability {
+  id         String    @id @default(uuid())
+  doctorId   String
+  dayOfWeek  DayOfWeek
+  startTime  String
+  endTime    String
+  breakStart String?
+  breakEnd   String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  doctor Doctor @relation(fields: [doctorId], references: [id])
+
+  @@unique([doctorId, dayOfWeek])
+  @@map("doctor_availability")
+}
+
+model DoctorLeave {
+  id        String   @id @default(uuid())
+  doctorId  String
+  date      DateTime
+  reason    String?
+  isFullDay Boolean  @default(true)
+  startTime String?
+  endTime   String?
+  createdAt DateTime @default(now())
+
+  doctor Doctor @relation(fields: [doctorId], references: [id])
+
+  @@map("doctor_leaves")
+}
+
+model Appointment {
+  id                String            @id @default(uuid())
+  userId            String
+  doctorId          String
+  startTime         DateTime
+  endTime           DateTime
+  status            AppointmentStatus @default(PENDING)
+  reason            String?
+  notes             String?
+  rescheduledFromId String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  user             User         @relation(fields: [userId], references: [id])
+  doctor           Doctor       @relation(fields: [doctorId], references: [id])
+  rescheduledFrom  Appointment? @relation("RescheduledFrom", fields: [rescheduledFromId], references: [id])
+  rescheduledTo    Appointment[] @relation("RescheduledFrom")
+
+  @@map("appointments")
+}
