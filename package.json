@@ -1,0 +1,14 @@
+{
+  "name": "voxicare",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:server": "npm run dev --workspace=apps/server",
+    "dev:web": "npm run dev --workspace=apps/web",
+    "dev": "npm run dev:server & npm run dev:web"
+  }
+}
