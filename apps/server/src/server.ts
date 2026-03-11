@@ -2,6 +2,7 @@ import Fastify from "fastify";
 import { registerPlugins } from "./plugins";
 import { env } from "./config/env";
 import { authRoutes } from "./modules/auth/auth.routes";
+import { doctorsRoutes } from "./modules/doctors/doctors.routes";
 
 // fastify instance
 const app = Fastify({
@@ -21,6 +22,9 @@ const start = async () => {
 
     //register all routes with under /api/auth/...
     app.register(authRoutes, { prefix: "/api/auth" });
+
+    //doctor routes - browsing doctors and specializations
+    app.register(doctorsRoutes, { prefix: "/api/doctors" });
 
     // start listening on configured port
     await app.listen({ port: Number(env.PORT), host: "0.0.0.0" });
