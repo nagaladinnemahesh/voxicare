@@ -5,6 +5,7 @@ import { authRoutes } from "./modules/auth/auth.routes";
 import { doctorsRoutes } from "./modules/doctors/doctors.routes";
 import { appointmentsRoutes } from "./modules/appointments/appointments.routes";
 import { agentRoutes } from "./modules/agent/agent.routes";
+import { voiceRoutes } from "./modules/voice/voice.routes";
 
 // fastify instance
 const app = Fastify({
@@ -33,6 +34,9 @@ const start = async () => {
 
     // Agent routes — AI agent powered by Claude
     app.register(agentRoutes, { prefix: "/api/agent" });
+
+    // Voice routes — Deepgram STT + ElevenLabs TTS
+    app.register(voiceRoutes, { prefix: "/api/voice" });
 
     // start listening on configured port
     await app.listen({ port: Number(env.PORT), host: "0.0.0.0" });

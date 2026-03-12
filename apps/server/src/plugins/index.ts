@@ -2,6 +2,7 @@ import { FastifyInstance } from "fastify";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import jwt from "@fastify/jwt";
+import multipart from "@fastify/multipart";
 import { env } from "../config/env";
 
 /**
@@ -23,5 +24,13 @@ export async function registerPlugins(app: FastifyInstance) {
   // jwt for verifying tokens
   await app.register(jwt, {
     secret: env.JWT_SECRET,
+  });
+
+  // Multipart — allows receiving audio/file uploads
+  // Required for voice chat endpoint
+  await app.register(multipart, {
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB max audio file size
+    },
   });
 }
