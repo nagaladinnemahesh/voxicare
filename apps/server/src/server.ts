@@ -4,6 +4,7 @@ import { env } from "./config/env";
 import { authRoutes } from "./modules/auth/auth.routes";
 import { doctorsRoutes } from "./modules/doctors/doctors.routes";
 import { appointmentsRoutes } from "./modules/appointments/appointments.routes";
+import { agentRoutes } from "./modules/agent/agent.routes";
 
 // fastify instance
 const app = Fastify({
@@ -29,6 +30,9 @@ const start = async () => {
 
     // Appointments routes — protected, requires JWT
     app.register(appointmentsRoutes, { prefix: "/api/appointments" });
+
+    // Agent routes — AI agent powered by Claude
+    app.register(agentRoutes, { prefix: "/api/agent" });
 
     // start listening on configured port
     await app.listen({ port: Number(env.PORT), host: "0.0.0.0" });
