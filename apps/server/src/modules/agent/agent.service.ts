@@ -1,24 +1,15 @@
-// import Anthropic from "@anthropic-ai/sdk";
-import Groq from "groq-sdk";
+import {
+  GoogleGenerativeAI,
+  Tool,
+  FunctionDeclaration,
+} from "@google/generative-ai";
 import { env } from "../../config/env";
 import { voxicareTools } from "./agent.tools";
 import { prisma } from "../../config/prisma";
 
-// Initialize Anthropic client
-// const anthropic = new Anthropic({
-//   apiKey: env.ANTHROPIC_API_KEY,
-// });
+// Initialize Gemini client
+const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
 
-//initialize groq client
-const groq = new Groq({
-  apiKey: env.GROQ_API_KEY,
-});
-
-/**
- * System prompt for the Voxicare AI agent
- * This tells Claude who it is and how to behave
- * The clearer this is, the better Claude performs
- */
 const SYSTEM_PROMPT = `You are Voxia, a helpful AI assistant for Voxicare — a healthcare appointment booking platform.
 
 Your job is to help patients:
@@ -29,17 +20,30 @@ Your job is to help patients:
 
 Guidelines:
 - Always be polite, professional and empathetic — this is healthcare
-- When booking, always check doctor availability first
-- If you need information to complete a task, ask the user clearly
-- Always confirm details before booking (doctor name, date, time)
-- When listing doctors or appointments, present them in a clear readable format
 - Today's date is ${new Date().toISOString().split("T")[0]}
 - Default appointment duration is 30 minutes unless user specifies otherwise
-- Always refer to times in a human friendly format e.g. "10:00 AM" not "10:00:00.000Z"`;
+- Always refer to times in a human friendly format e.g. "10:00 AM" not "10:00:00.000Z"
 
+IMPORTANT BOOKING RULES:
+- NEVER ask the user for a doctor ID — you find it yourself using tools
+- When the user mentions a doctor by name, use getDoctors tool to find their ID
+- When the user says a city, use it to filter doctors
+- When you have doctor name + date + time, immediately check availability then book
+- Once you have all details confirmed, book immediately using bookAppointment
+- If the doctor is not available at requested time, suggest their next available slot
+- If the user already told you something in this conversation, do NOT ask for it again
+- Never say you don't have access to tools — you always have all tools available
+- After finding doctors or checking availability, always summarize what you found in your response
+- Always include doctor name AND confirmed date/time in your response before booking
+
+IMPORTANT CANCEL/RESCHEDULE RULES:
+- When user wants to cancel or reschedule, ALWAYS call listAppointments tool first
+- Never ask the user for an appointment ID — find it yourself using listAppointments
+- After listing appointments, show them clearly and ask which one to cancel/reschedule
+- Once user picks an appointment, use the ID from listAppointments result to proceed
+- For reschedule, ask for new date and time, check availability, then call rescheduleAppointment`;
 /**
- * Executes a tool call requested by Claude
- * Maps tool names to actual API/database operations
+ * Executes a tool call
  */
 async function executeTool(
   toolName: string,
@@ -49,7 +53,6 @@ async function executeTool(
   try {
     switch (toolName) {
       case "getSpecializations": {
-        // Fetch all specializations from database
         const specializations = await prisma.specialization.findMany({
           orderBy: { name: "asc" },
         });
@@ -57,7 +60,6 @@ async function executeTool(
       }
 
       case "getDoctors": {
-        // Fetch approved doctors with optional filters
         const { city, specializationId } = toolInput;
         const doctors = await prisma.doctor.findMany({
           where: {
@@ -79,18 +81,16 @@ async function executeTool(
               },
             },
           },
-          take: 10, // limit to 10 doctors
+          take: 10,
         });
         return JSON.stringify(doctors);
       }
 
       case "getDoctorAvailability": {
-        // Check doctor availability for a specific date
         const { doctorId, date } = toolInput;
         const dayNames = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
         const dayOfWeek = dayNames[new Date(date).getDay()];
 
-        // Check for leave
         const leave = await prisma.doctorLeave.findFirst({
           where: { doctorId, date: new Date(date) },
         });
@@ -101,7 +101,6 @@ async function executeTool(
           });
         }
 
-        // Check regular schedule
         const availability = await prisma.doctorAvailability.findUnique({
           where: {
             doctorId_dayOfWeek: { doctorId, dayOfWeek: dayOfWeek as any },
@@ -125,12 +124,20 @@ async function executeTool(
       }
 
       case "bookAppointment": {
-        // Book a new appointment for the logged in user
         const { doctorId, startTime, endTime, reason } = toolInput;
         const start = new Date(startTime);
         const end = new Date(endTime);
 
-        // Check for conflicts
+        // Generate booking ID like VX-1001
+        const lastAppt = await prisma.appointment.findFirst({
+          orderBy: { createdAt: "desc" },
+          where: { bookingId: { not: null } },
+        });
+        const lastNum = lastAppt?.bookingId
+          ? parseInt(lastAppt.bookingId.replace("VX-", ""))
+          : 1000;
+        const bookingId = `VX-${lastNum + 1}`;
+
         const conflict = await prisma.appointment.findFirst({
           where: {
             doctorId,
@@ -149,7 +156,6 @@ async function executeTool(
           });
         }
 
-        // Create the appointment
         const appointment = await prisma.appointment.create({
           data: {
             userId,
@@ -158,6 +164,7 @@ async function executeTool(
             endTime: end,
             reason,
             status: "PENDING",
+            bookingId,
           },
           include: {
             doctor: { select: { name: true, city: true } },
@@ -167,7 +174,6 @@ async function executeTool(
       }
 
       case "listAppointments": {
-        // Get all appointments for the logged in user
         const { status } = toolInput;
         const appointments = await prisma.appointment.findMany({
           where: {
@@ -193,21 +199,18 @@ async function executeTool(
       }
 
       case "cancelAppointment": {
-        // Cancel an appointment — verify it belongs to the user first
         const { appointmentId } = toolInput;
         const appointment = await prisma.appointment.findUnique({
           where: { id: appointmentId },
         });
 
-        if (!appointment) {
+        if (!appointment)
           return JSON.stringify({
             success: false,
             error: "Appointment not found",
           });
-        }
-        if (appointment.userId !== userId) {
+        if (appointment.userId !== userId)
           return JSON.stringify({ success: false, error: "Unauthorized" });
-        }
         if (!["PENDING", "CONFIRMED"].includes(appointment.status)) {
           return JSON.stringify({
             success: false,
@@ -223,26 +226,22 @@ async function executeTool(
       }
 
       case "rescheduleAppointment": {
-        // Reschedule — cancel old, create new with history link
         const { appointmentId, startTime, endTime } = toolInput;
         const appointment = await prisma.appointment.findUnique({
           where: { id: appointmentId },
         });
 
-        if (!appointment) {
+        if (!appointment)
           return JSON.stringify({
             success: false,
             error: "Appointment not found",
           });
-        }
-        if (appointment.userId !== userId) {
+        if (appointment.userId !== userId)
           return JSON.stringify({ success: false, error: "Unauthorized" });
-        }
 
         const start = new Date(startTime);
         const end = new Date(endTime);
 
-        // Use transaction to cancel old and create new atomically
         const newAppointment = await prisma.$transaction(async (tx) => {
           await tx.appointment.update({
             where: { id: appointmentId },
@@ -267,80 +266,109 @@ async function executeTool(
         return JSON.stringify({ error: `Unknown tool: ${toolName}` });
     }
   } catch (error: any) {
-    // Return error as string so Claude can handle it gracefully
     return JSON.stringify({ error: error.message });
   }
 }
 
 /**
- * Main agent function using Groq
- * Sends user message to Groq, handles tool calls, returns final response
+ * Main agent function using Gemini
  */
 export async function runAgent(data: {
   message: string;
   userId: string;
   conversationHistory: Array<{ role: "user" | "assistant"; content: string }>;
-}): Promise<string> {
+}): Promise<{ response: string; conversationHistory: any[] }> {
   const { message, userId, conversationHistory } = data;
 
-  // Build messages array with conversation history + new message
-  const messages: any[] = [
-    { role: "system", content: SYSTEM_PROMPT },
-    ...conversationHistory.map((msg) => ({
-      role: msg.role,
-      content: msg.content,
-    })),
-    { role: "user", content: message },
+  // Convert tools to Gemini format
+  const tools: Tool[] = [
+    {
+      functionDeclarations: voxicareTools.map((tool) => ({
+        name: tool.name,
+        description: tool.description,
+        parameters: tool.input_schema as any,
+      })) as FunctionDeclaration[],
+    },
   ];
 
-  // Agentic loop — keeps running until LLM gives a final text response
+  // Build Gemini chat history from conversation history
+  const history = conversationHistory.map((msg) => ({
+    role: msg.role === "assistant" ? "model" : "user",
+    parts: [{ text: msg.content }],
+  }));
+
+  // Initialize model with system instruction
+  const model = genAI.getGenerativeModel({
+    model: "gemini-2.5-flash-lite",
+    systemInstruction: SYSTEM_PROMPT,
+    tools,
+  });
+
+  // Start chat with history
+  const chat = model.startChat({ history });
+
+  // Track updated history
+  const updatedHistory = [...conversationHistory];
+
+  // Send initial message
+  // Inject recent context into message so Gemini doesn't lose it
+  const contextReminder =
+    conversationHistory.length > 0
+      ? `[Context from our conversation so far: ${conversationHistory
+          .slice(-6)
+          .map((m) => `${m.role}: ${m.content}`)
+          .join(" | ")}]\n\nUser says: ${message}`
+      : message;
+
+  let result = await chat.sendMessage(contextReminder);
+  updatedHistory.push({ role: "user", content: message });
+
+  // Agentic loop
   while (true) {
-    // Send message to Groq with our tools
-    const response = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile", // best free model for tool calling
-      max_tokens: 1024,
-      messages,
-      tools: voxicareTools.map((tool) => ({
-        type: "function" as const,
-        function: {
-          name: tool.name,
-          description: tool.description,
-          parameters: tool.input_schema,
-        },
-      })),
-    });
+    const response = result.response;
+    const candidate = response.candidates?.[0];
 
-    const choice = response.choices[0];
-
-    // If LLM is done and gives a text response — return it
-    if (choice.finish_reason === "stop") {
-      return choice.message.content || "I could not process your request.";
+    if (!candidate) {
+      break;
     }
 
-    // If LLM wants to use a tool
-    if (choice.finish_reason === "tool_calls" && choice.message.tool_calls) {
-      // Add assistant message to history
-      messages.push(choice.message);
+    // Check for function calls
+    const functionCalls = candidate.content.parts
+      .filter((p: any) => p.functionCall)
+      .map((p: any) => p.functionCall!);
 
-      // Process all tool calls
-      for (const toolCall of choice.message.tool_calls) {
-        const toolName = toolCall.function.name;
-        const toolInput = JSON.parse(toolCall.function.arguments);
+    if (functionCalls.length === 0) {
+      // No tool calls — return final text response
+      const finalResponse = response.text();
+      updatedHistory.push({ role: "assistant", content: finalResponse });
+      return { response: finalResponse, conversationHistory: updatedHistory };
+    }
 
-        console.log(`🔧 Voxia is calling tool: ${toolName}`, toolInput);
+    // Execute all function calls
+    const functionResponseParts = [];
+    for (const fc of functionCalls) {
+      console.log(`🔧 Voxia is calling tool: ${fc.name}`, fc.args);
+      const toolResult = await executeTool(fc.name, fc.args ?? {}, userId);
+      console.log(`✅ Tool result for ${fc.name}:`, toolResult);
 
-        // Execute the tool
-        const result = await executeTool(toolName, toolInput, userId);
+      functionResponseParts.push({
+        functionResponse: {
+          name: fc.name,
+          response: { result: toolResult },
+        },
+      });
+    }
 
-        console.log(`✅ Tool result for ${toolName}:`, result);
-
-        // Add tool result back to messages
-        messages.push({
-          role: "tool",
-          tool_call_id: toolCall.id,
-          content: result,
-        });
-      }
+    // Send tool results back — must be non-empty
+    if (functionResponseParts.length > 0) {
+      result = await chat.sendMessage(functionResponseParts);
+    } else {
+      break;
     }
   }
+
+  return {
+    response: "I could not process your request.",
+    conversationHistory: updatedHistory,
+  };
 }

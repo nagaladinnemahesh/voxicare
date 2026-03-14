@@ -1,0 +1,238 @@
+/* Dashboard page styles */
+
+.container {
+  min-height: 100vh;
+  background-color: #f9fafb;
+}
+
+/* ── Navbar ── */
+.navbar {
+  background-color: white;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.navBrand {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #16a34a;
+}
+
+.navUser {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.btnLogout {
+  padding: 6px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  color: #374151;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btnLogout:hover {
+  background-color: #f3f4f6;
+}
+
+/* ── Main layout ── */
+.main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 16px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+/* ── Cards ── */
+.card {
+  background-color: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.cardTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 16px;
+}
+
+/* ── Appointments ── */
+.appointmentList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.appointmentItem {
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.appointmentDoctor {
+  font-weight: 600;
+  color: #111827;
+  font-size: 0.95rem;
+}
+
+.appointmentTime {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.appointmentStatus {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.statusPending {
+  background-color: #fef9c3;
+  color: #854d0e;
+}
+
+.statusConfirmed {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.statusCancelled {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.statusCompleted {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+.emptyState {
+  text-align: center;
+  color: #9ca3af;
+  font-size: 0.9rem;
+  padding: 24px 0;
+}
+
+/* ── Voice / Chat widget ── */
+.chatMessages {
+  height: 300px;
+  overflow-y: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.messageUser {
+  align-self: flex-end;
+  background-color: #16a34a;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px 8px 0 8px;
+  font-size: 0.9rem;
+  max-width: 80%;
+}
+
+.messageAgent {
+  align-self: flex-start;
+  background-color: #f3f4f6;
+  color: #111827;
+  padding: 8px 12px;
+  border-radius: 8px 8px 8px 0;
+  font-size: 0.9rem;
+  max-width: 80%;
+}
+
+.chatInput {
+  display: flex;
+  gap: 8px;
+}
+
+.input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+.input:focus {
+  border-color: #16a34a;
+}
+
+.btnSend {
+  padding: 10px 16px;
+  background-color: #16a34a;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btnSend:hover {
+  background-color: #15803d;
+}
+
+.btnSend:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* ── Voice button ── */
+.voiceSection {
+  margin-top: 12px;
+  text-align: center;
+}
+
+.btnVoice {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: none;
+  background-color: #16a34a;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btnVoice:hover {
+  background-color: #15803d;
+  transform: scale(1.05);
+}
+
+.btnVoiceRecording {
+  background-color: #dc2626;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.1); }
+}
+
+.voiceHint {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  margin-top: 8px;
+}

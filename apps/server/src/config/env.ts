@@ -12,4 +12,5 @@ export const env = {
   DEEPGRAM_API_KEY: process.env.DEEPGRAM_API_KEY as string,
   ELEVENLABS_API_KEY: process.env.ELEVENLABS_API_KEY as string,
   GROQ_API_KEY: process.env.GROQ_API_KEY as string,
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY as string,
 };

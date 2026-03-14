@@ -159,6 +159,7 @@ model Appointment {
   id                String            @id @default(uuid())
   userId            String
   doctorId          String
+  bookingId  String?  @unique
   startTime         DateTime
   endTime           DateTime
   status            AppointmentStatus @default(PENDING)

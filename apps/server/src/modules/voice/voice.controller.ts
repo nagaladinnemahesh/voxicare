@@ -45,13 +45,18 @@ export async function voiceChatController(
 
     //step2 - send transcript to voxia
     console.log("Sending to voxia agent..");
-    const agentResponse = await runAgent({
-      message: transcript,
-      userId,
-      conversationHistory,
-    });
+    // const agentResponse = await runAgent({
+    //   message: transcript,
+    //   userId,
+    //   conversationHistory,
+    // });
+    const { response: agentResponse, conversationHistory: updatedHistory } =
+      await runAgent({
+        message: transcript,
+        userId,
+        conversationHistory,
+      });
     console.log(`Agent response: "${agentResponse}"`);
-
     //step3 - agent response to speech using elevenlabs
     console.log("Converting to speech");
     const audioResponse = await textToSpeech(agentResponse);
@@ -65,6 +70,14 @@ export async function voiceChatController(
       .header("content-type", "audio/mpeg")
       .header("X-Transcript", encodeURIComponent(transcript))
       .header("X-Agent-Response", encodeURIComponent(agentResponse))
+      .header(
+        "x-Conversation-History",
+        encodeURIComponent(JSON.stringify(updatedHistory)),
+      )
+      .header(
+        "Access-Control-Expose-Headers",
+        "X-Transcript, X-Agent-Response, X-Conversation-History",
+      )
       .send(audioResponse);
   } catch (error: any) {
     console.error("Voice chat error:", error);

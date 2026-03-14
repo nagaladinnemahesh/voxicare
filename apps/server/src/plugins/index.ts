@@ -16,6 +16,11 @@ export async function registerPlugins(app: FastifyInstance) {
   await app.register(cors, {
     origin: "http://localhost:3000", // nextjs runs here
     credentials: true, // allows cookies/auth headers
+    exposedHeaders: [
+      "X-Transcript",
+      "X-Agent-Response",
+      "X-Conversation-History",
+    ],
   });
 
   // helmet for adding security headers to response automatically

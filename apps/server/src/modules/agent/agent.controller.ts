@@ -33,24 +33,21 @@ export async function agentChatController(
     console.log(`💬 User ${userId} says: ${message}`);
 
     // Run the agent — this may take 1-3 seconds as Claude thinks
-    const response = await runAgent({
-      message,
-      userId,
-      conversationHistory,
-    });
+    const { response: agentResponse, conversationHistory: updatedHisotry } =
+      await runAgent({
+        message,
+        userId,
+        conversationHistory,
+      });
 
-    console.log(`🤖 Voxia responds: ${response}`);
+    console.log(`🤖 Voxia responds: ${agentResponse}`);
 
     return reply.status(200).send({
       success: true,
       data: {
-        response,
+        response: agentResponse,
         // Return updated conversation history for frontend to maintain
-        conversationHistory: [
-          ...conversationHistory,
-          { role: "user", content: message },
-          { role: "assistant", content: response },
-        ],
+        conversationHistory: updatedHisotry,
       },
     });
   } catch (error: any) {
