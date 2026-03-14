@@ -6,6 +6,7 @@ import { doctorsRoutes } from "./modules/doctors/doctors.routes";
 import { appointmentsRoutes } from "./modules/appointments/appointments.routes";
 import { agentRoutes } from "./modules/agent/agent.routes";
 import { voiceRoutes } from "./modules/voice/voice.routes";
+import { adminRoutes } from "./modules/admin/admin.routes";
 
 // fastify instance
 const app = Fastify({
@@ -31,6 +32,9 @@ const start = async () => {
 
     // Appointments routes — protected, requires JWT
     app.register(appointmentsRoutes, { prefix: "/api/appointments" });
+
+    // Admin routes — doctor approval, platform stats
+    app.register(adminRoutes, { prefix: "/api/admin" });
 
     // Agent routes — AI agent powered by Claude
     app.register(agentRoutes, { prefix: "/api/agent" });
