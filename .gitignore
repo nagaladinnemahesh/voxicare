@@ -25,3 +25,10 @@ Thumbs.db
 # Prisma
 *.db
 *.db-journal
+
+node_modules
+.git
+.env
+*.log
+.next
+dist
