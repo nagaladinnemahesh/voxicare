@@ -6,6 +6,14 @@ import {
   listSpecializationsController,
 } from "./doctors.controller";
 import { listDoctorsSchema, getDoctorSchema } from "./doctors.schema";
+import {
+  getDoctorAppointmentsController,
+  getDoctorProfileController,
+  updateAvailabilityController,
+  addLeaveController,
+  updateAppointmentStatusController,
+} from "./doctor.dashboard.controller";
+import { authenticate } from "../../middlewares/authenticate";
 
 // Doctors routes — registers all doctor related endpoints
 
@@ -47,5 +55,28 @@ export async function doctorsRoutes(app: FastifyInstance) {
       schema: getDoctorSchema,
     },
     getDoctorAvailabilityController,
+  );
+  // Doctor dashboard routes — protected, requires doctor JWT
+  app.get(
+    "/me/profile",
+    { preHandler: [authenticate] },
+    getDoctorProfileController,
+  );
+  app.get(
+    "/me/appointments",
+    { preHandler: [authenticate] },
+    getDoctorAppointmentsController,
+  );
+  app.put(
+    "/me/availability",
+    { preHandler: [authenticate] },
+    updateAvailabilityController,
+  );
+  app.post("/me/leave", { preHandler: [authenticate] }, addLeaveController);
+
+  app.put(
+    "/me/appointments/:id/status",
+    { preHandler: [authenticate] },
+    updateAppointmentStatusController,
   );
 }
