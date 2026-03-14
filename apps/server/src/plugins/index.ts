@@ -14,7 +14,7 @@ import { env } from "../config/env";
 export async function registerPlugins(app: FastifyInstance) {
   // cors connection for frontend and backend talking
   await app.register(cors, {
-    origin: "http://localhost:3000", // nextjs runs here
+    origin: [env.FRONTEND_URL, "http://localhost:3000"], // nextjs runs here
     credentials: true, // allows cookies/auth headers
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     exposedHeaders: [
