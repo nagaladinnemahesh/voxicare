@@ -13,4 +13,5 @@ export const env = {
   ELEVENLABS_API_KEY: process.env.ELEVENLABS_API_KEY as string,
   GROQ_API_KEY: process.env.GROQ_API_KEY as string,
   GEMINI_API_KEY: process.env.GEMINI_API_KEY as string,
+  FRONTEND_URL: process.env.FRONTEND_URL as string,
 };

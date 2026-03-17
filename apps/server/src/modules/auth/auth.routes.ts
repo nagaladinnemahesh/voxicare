@@ -54,3 +54,5 @@ export async function authRoutes(app: FastifyInstance) {
     loginDoctorController,
   );
 }
+
+// console.log("Hello seenu")
